@@ -2,6 +2,7 @@
 .idea
 vendor
 Gopkg.lock
+coverage.txt
 *.exe
 *.dll
 *.so

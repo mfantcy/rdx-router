@@ -1,7 +1,6 @@
 language: go
 go:
-  - "1.x"
-  - "1.8"
+  - "1.9"
   - "1.10.x"
   - master
 
@@ -17,6 +16,9 @@ install:
   - dep ensure
 
 script:
-  - bash tests.sh
+  - bash test_covers.sh
 
 sudo: true
+
+after_success:
+  - bash <(curl -s https://codecov.io/bash) -t cd6d4e9d-9772-4809-9d93-bfe39c9aca47
