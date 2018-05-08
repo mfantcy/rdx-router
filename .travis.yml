@@ -1,0 +1,22 @@
+language: go
+go:
+  - "1.x"
+  - "1.8"
+  - "1.10.x"
+  - master
+
+branches:
+  only:
+    - master
+
+before_install:
+  - curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
+  - chmod +x $GOPATH/bin/dep
+
+install:
+  - dep ensure
+
+script:
+  - bash test.sh
+
+sudo: true
