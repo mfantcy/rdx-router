@@ -24,4 +24,4 @@ sudo: true
 
 after_success:
   - bash <(curl -s https://codecov.io/bash) -t cd6d4e9d-9772-4809-9d93-bfe39c9aca47
-  - $HOME/gopath/bin/goveralls -coverprofile=coverage.txt -service=travis-ci -repotoken $COVERALLS_TOKEN
+  - $(go env GOPATH | awk 'BEGIN{FS=":"} {print $1}')/bin/goveralls -coverprofile=coverage.txt -service=travis-ci -repotoken $COVERALLS_TOKEN
