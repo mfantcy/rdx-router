@@ -14,8 +14,8 @@
 package tree
 
 import (
-	"regexp"
 	"errors"
+	"regexp"
 )
 
 type nodeType uint8
@@ -130,7 +130,6 @@ func (n *node) AddThen(pattern string, callback AddHookFunc) Edge {
 	return treetop
 }
 
-
 func NewTree() *node {
 	return newNode()
 }
@@ -151,7 +150,6 @@ func isSameSlice(a []string, b []string) bool {
 	}
 	return true
 }
-
 
 func (n *node) Lookup(path string, fixTailingSlash bool) (ctx interface{}, pairs Pairs, ok bool) {
 	var leaf *leaf
@@ -389,8 +387,6 @@ func (n *node) splitEdge(pos int) {
 	n.leaf = nil
 }
 
-
-
 func min(a, b int) int {
 	if a <= b {
 		return a
@@ -442,7 +438,7 @@ walk:
 		if !prefixMatch {
 			regexpIdx, paramPo, paramLen, wildDone = 0, 0, 0, false
 			if len(path[po:]) > n.pathLen {
-				if p := path[po:po+n.pathLen]; p == n.path {
+				if p := path[po : po+n.pathLen]; p == n.path {
 					prefixMatch = true
 					if npo := po + n.pathLen; n.staticBranches[path[npo]] != nil {
 						nextPo = npo
@@ -481,8 +477,7 @@ walk:
 				regexpNode := n.regexpBranches[regexpIdx]
 				regexpIdx++
 
-				if m := regexpNode.regexp.FindAllString(path[paramPo:paramPo+paramLen], 1);
-					len(m) > 0 && m[0] == path[paramPo:paramPo+paramLen] {
+				if m := regexpNode.regexp.FindAllString(path[paramPo:paramPo+paramLen], 1); len(m) > 0 && m[0] == path[paramPo:paramPo+paramLen] {
 					next = regexpNode
 					goto beforeNext
 				}
@@ -557,7 +552,7 @@ found:
 	paramsIdx := len(params) - 1
 	for paramsIdx >= 0 && backStack != nil {
 		if backStack.paramLen > 0 {
-			params[paramsIdx] = &Pair{leaf.params[paramsIdx], path[backStack.paramPo:backStack.paramPo+backStack.paramLen]}
+			params[paramsIdx] = &Pair{leaf.params[paramsIdx], path[backStack.paramPo : backStack.paramPo+backStack.paramLen]}
 			paramsIdx--
 		}
 		backStack = backStack.prev

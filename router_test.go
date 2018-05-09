@@ -1,8 +1,9 @@
 package rdx_router
 
 import (
-	"github.com/stretchr/testify/assert"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestNothing(t *testing.T) {

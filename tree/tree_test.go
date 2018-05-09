@@ -42,7 +42,7 @@ func assertAddExceptFullPath(t *testing.T, tree *node, pattern string, context i
 	assert.Equal(t, expected, edge.FullPathPattern())
 	assert.Equal(t, context, edge.Context())
 	if len(params) > 0 {
-		if p := edge.Params() ;len(params[0]) == len(p) {
+		if p := edge.Params(); len(params[0]) == len(p) {
 			for idx, param := range params[0] {
 				if p[idx] != param {
 					assert.Fail(t, fmt.Sprintf("expected: %v actual:%v", params, p))
@@ -122,14 +122,14 @@ func TestSplitEdge(t *testing.T) {
 
 func TestIsSameSlice(t *testing.T) {
 	assert.True(t, isSameSlice([]string{"123", "321", "567"}, []string{"123", "321", "567"}))
-	assert.False(t, isSameSlice([]string{"123", "321", "567"}, []string{ "321", "123", "567"}))
-	assert.False(t, isSameSlice([]string{ "321"}, []string{"321", "123"}))
-	assert.False(t, isSameSlice([]string{ "321", "567"}, []string{"321", "123"}))
+	assert.False(t, isSameSlice([]string{"123", "321", "567"}, []string{"321", "123", "567"}))
+	assert.False(t, isSameSlice([]string{"321"}, []string{"321", "123"}))
+	assert.False(t, isSameSlice([]string{"321", "567"}, []string{"321", "123"}))
 }
 
 func TestAddNormalStaticPathShouldOK(t *testing.T) {
 	tree := NewTree()
-	assertAddExceptFullPath(t, tree, "/", 1, "/", )
+	assertAddExceptFullPath(t, tree, "/", 1, "/")
 	assertFound(t, tree, "/", false, 1)
 
 	assertAddExceptFullPath(t, tree, "/abc", 2, "/abc")
@@ -217,7 +217,6 @@ func TestWildPathShouldOK(t *testing.T) {
 	assertFoundParams(t, tree, "/1/2/3", false, Pairs{&Pair{"a", "1"}, &Pair{"b", "2"}, &Pair{"c", "3"}}, 3)
 
 }
-
 
 func TestAddSameWildAndRegexpDifferentParamNameShouldPanic(t *testing.T) {
 	tree := NewTree()
@@ -317,7 +316,6 @@ func TestStaticRegexpWild(t *testing.T) {
 	assertNotFound(t, tree, "/path/to/abc/", false)
 	assertFound(t, tree, "/path/to/abc/", true, "11")
 }
-
 
 func TestAddDoubleSlashesShouldCleanToOneSlash(t *testing.T) {
 	tree := NewTree()
