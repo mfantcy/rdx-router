@@ -4,7 +4,7 @@ set -e
 rm -rf coverage.txt
 
 for d in $(go list ./... | grep -v vendor); do
-    go test -race -coverprofile=profile.out -covermode=atomic $d
+    go test -v -race -covermode=atomic -coverprofile=profile.out $d
     if [ -f profile.out ]; then
         if [ -f coverage.txt ]; then
             cat profile.out |grep -v "mode:" >> coverage.txt
