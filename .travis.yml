@@ -11,6 +11,8 @@ branches:
 before_install:
   - curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
   - chmod +x $GOPATH/bin/dep
+  - go get golang.org/x/tools/cmd/cover
+  - go get github.com/mattn/goveralls
 
 install:
   - dep ensure
@@ -22,3 +24,4 @@ sudo: true
 
 after_success:
   - bash <(curl -s https://codecov.io/bash) -t cd6d4e9d-9772-4809-9d93-bfe39c9aca47
+  - $HOME/gopath/bin/goveralls -coverprofile=coverage.txt -service=travis-ci -repotoken $COVERALLS_TOKEN
