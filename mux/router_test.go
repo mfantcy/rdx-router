@@ -1,4 +1,4 @@
-package rdx_router
+package mux
 
 import (
 	"testing"

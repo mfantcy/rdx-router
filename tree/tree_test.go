@@ -24,7 +24,7 @@ func dumpNode(n *node, prefix string) {
 	}
 }
 
-func pairsString(pairs Pairs) string {
+func pairsString(pairs []*Pair) string {
 	res := ""
 	for _, pairp := range pairs {
 		pstr := fmt.Sprintf("%v", pairp)
@@ -76,7 +76,7 @@ func assertNotFound(t *testing.T, tree *node, lookup string, fixTailingSlash boo
 	}
 }
 
-func assertFoundParams(t *testing.T, tree *node, lookup string, fixTailingSlash bool, expectedParams Pairs, expectedContext interface{}) {
+func assertFoundParams(t *testing.T, tree *node, lookup string, fixTailingSlash bool, expectedParams []*Pair, expectedContext interface{}) {
 	ctx, p, ok := tree.Lookup(lookup, fixTailingSlash)
 	if !ok {
 		assert.Fail(t, lookup+" not found")
@@ -90,12 +90,12 @@ func assertFoundParams(t *testing.T, tree *node, lookup string, fixTailingSlash 
 				found := false
 				for _, pv := range p {
 					//fmt.Println(pv)
-					if pv != nil && v.Key == pv.Key && v.Value == pv.Value {
+					if pv != nil && v.Name == pv.Name && v.Value == pv.Value {
 						found = true
 					}
 				}
 				if !found {
-					assert.Fail(t, fmt.Sprintf("expected &Pair{Key: \"%s\", Value: \"%s\"} not found ", v.Key, v.Value)+" expected: "+pairsString(expectedParams)+" actual: "+pairsString(p))
+					assert.Fail(t, fmt.Sprintf("expected &Pair{Name: \"%s\", Value: \"%s\"} not found ", v.Name, v.Value)+" expected: "+pairsString(expectedParams)+" actual: "+pairsString(p))
 				}
 			}
 		}
@@ -177,24 +177,24 @@ func TestAddRegexpPathShouldOK(t *testing.T) {
 	assertAddExceptFullPath(t, tree, "/456", 4, "/456")
 	assertAddExceptFullPath(t, tree, "/{c:[a-z]{1}}", 5, "/{c:[a-z]{1}}")
 
-	assertFoundParams(t, tree, "/123", false, Pairs{&Pair{"", "123"}}, 1)
-	assertFoundParams(t, tree, "/345", true, Pairs{&Pair{"", "345"}}, 1)
-	assertFoundParams(t, tree, "/123/", true, Pairs{&Pair{"", "123"}}, 1)
+	assertFoundParams(t, tree, "/123", false, []*Pair{&Pair{"", "123"}}, 1)
+	assertFoundParams(t, tree, "/345", true, []*Pair{&Pair{"", "345"}}, 1)
+	assertFoundParams(t, tree, "/123/", true, []*Pair{&Pair{"", "123"}}, 1)
 	assertNotFound(t, tree, "/123/", false)
 	assertNotFound(t, tree, "/12f", false)
 
-	assertFoundParams(t, tree, "/1/cde", false, Pairs{&Pair{"p", "1"}}, 2)
-	assertFoundParams(t, tree, "/1/cde", true, Pairs{&Pair{"p", "1"}}, 2)
-	assertFoundParams(t, tree, "/1/cde/", true, Pairs{&Pair{"p", "1"}}, 2)
+	assertFoundParams(t, tree, "/1/cde", false, []*Pair{&Pair{"p", "1"}}, 2)
+	assertFoundParams(t, tree, "/1/cde", true, []*Pair{&Pair{"p", "1"}}, 2)
+	assertFoundParams(t, tree, "/1/cde/", true, []*Pair{&Pair{"p", "1"}}, 2)
 	assertNotFound(t, tree, "/1/cde/", false)
 
-	assertFoundParams(t, tree, "/123/765/cde", false, Pairs{&Pair{"p", "765"}}, 3)
-	assertFoundParams(t, tree, "/123/34/cde/", true, Pairs{&Pair{"p", "34"}}, 3)
+	assertFoundParams(t, tree, "/123/765/cde", false, []*Pair{&Pair{"p", "765"}}, 3)
+	assertFoundParams(t, tree, "/123/34/cde/", true, []*Pair{&Pair{"p", "34"}}, 3)
 
-	assertFoundParams(t, tree, "/456", false, Pairs{}, 4)
-	assertFoundParams(t, tree, "/a", false, Pairs{&Pair{"c", "a"}}, 5)
+	assertFoundParams(t, tree, "/456", false, []*Pair{}, 4)
+	assertFoundParams(t, tree, "/a", false, []*Pair{&Pair{"c", "a"}}, 5)
 	assertNotFound(t, tree, "/a/", false)
-	assertFoundParams(t, tree, "/a/", true, Pairs{&Pair{"c", "a"}}, 5)
+	assertFoundParams(t, tree, "/a/", true, []*Pair{&Pair{"c", "a"}}, 5)
 
 	assertNotFound(t, tree, "/abc", false)
 	assertNotFound(t, tree, "/abc", true)
@@ -208,13 +208,13 @@ func TestWildPathShouldOK(t *testing.T) {
 	assertAddExceptFullPath(t, tree, "/{a}/{b}/{c}", 3, "/{a}/{b}/{c}")
 	assertAddExceptFullPath(t, tree, "/{a}/{b}/{c}/", 4, "/{a}/{b}/{c}/")
 
-	assertFoundParams(t, tree, "/abc", false, Pairs{&Pair{"", "abc"}}, 1)
-	assertFoundParams(t, tree, "/abc", true, Pairs{&Pair{"", "abc"}}, 1)
+	assertFoundParams(t, tree, "/abc", false, []*Pair{&Pair{"", "abc"}}, 1)
+	assertFoundParams(t, tree, "/abc", true, []*Pair{&Pair{"", "abc"}}, 1)
 	assertNotFound(t, tree, "/abc/", false)
-	assertFoundParams(t, tree, "/abc/", true, Pairs{&Pair{"", "abc"}}, 1)
+	assertFoundParams(t, tree, "/abc/", true, []*Pair{&Pair{"", "abc"}}, 1)
 
-	assertFoundParams(t, tree, "/abc/a", false, Pairs{&Pair{"p", "abc"}}, 2)
-	assertFoundParams(t, tree, "/1/2/3", false, Pairs{&Pair{"a", "1"}, &Pair{"b", "2"}, &Pair{"c", "3"}}, 3)
+	assertFoundParams(t, tree, "/abc/a", false, []*Pair{&Pair{"p", "abc"}}, 2)
+	assertFoundParams(t, tree, "/1/2/3", false, []*Pair{&Pair{"a", "1"}, &Pair{"b", "2"}, &Pair{"c", "3"}}, 3)
 
 }
 

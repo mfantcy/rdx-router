@@ -1,14 +1,16 @@
-package rdx_router
+package mux
+
+import "net/http"
 
 type methodContext struct {
-	handler    HandleFunc
-	handleFunc HandleFunc
+	handler    http.Handler
+	handleFunc http.HandlerFunc
 }
 
 func (mc *methodContext) Use(middleware ...MiddlewareFunc) {
-	mc.handleFunc = mc.handler
+	mc.handleFunc = mc.handler.ServeHTTP
 	for _, m := range middleware {
-		mc.handleFunc = m(mc.handleFunc)
+		mc.handleFunc = m(mc.handleFunc).ServeHTTP
 	}
 }
 
@@ -21,7 +23,7 @@ func (r Route) Methods() (methods []string) {
 	return
 }
 
-func (r Route) MethodHandleFunc(method string) (handleFunc HandleFunc) {
+func (r Route) MethodHandleFunc(method string) (handleFunc http.HandlerFunc) {
 	if ctx, ok := r[method]; ok {
 		handleFunc = ctx.handleFunc
 	}

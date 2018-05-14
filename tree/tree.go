@@ -1,14 +1,14 @@
-// Radix tree mix regexp and wild implementation
+// Radix tree mix regexp and wildcard implementation
 //
 // Format
 // A route pattern placeholder starts with a {, followed by the placeholder name, ending with a }.
-// This is an example placeholder named name:
+// This is an example wildcard named placeholder:
 // "/hello/{name}"
-// No param
+// No placeholder name
 // "/hello/{} | /hello/{*}"
 // Regular expression matching
 // "/users/{id:[0-9]+}"
-// No param
+// No placeholder name
 // "/numbers/{:[0-9]+}|/numbers/{*:[0-9]+}"
 
 package tree
@@ -25,27 +25,6 @@ const (
 	nodeTypeRegexp
 	nodeTypeWild
 )
-
-type Pair struct {
-	Key   string
-	Value string
-}
-
-type Pairs []*Pair
-
-type Edge interface {
-	FullPathPattern() string
-	Context() interface{}
-	Params() []string
-}
-
-type AddHookFunc func(context interface{}) interface{}
-
-type Tree interface {
-	Lookup(path string, fixTailingSlash bool) (interface{}, Pairs, bool)
-	Add(pattern string, ctx interface{}) Edge
-	AddThen(pattern string, callback AddHookFunc) Edge
-}
 
 type leaf struct {
 	params  []string
@@ -108,13 +87,13 @@ func (n *node) Params() (params []string) {
 	return
 }
 
-func (n *node) Add(pattern string, ctx interface{}) Edge {
+func (n *node) Add(pattern string, ctx interface{}) NodeInterface {
 	return n.AddThen(pattern, func(context interface{}) interface{} {
 		return ctx
 	})
 }
 
-func (n *node) AddThen(pattern string, callback AddHookFunc) Edge {
+func (n *node) AddThen(pattern string, callback AddHookFunc) NodeInterface {
 	var params []string
 	treetop := n.add(pattern, &params)
 	if treetop.leaf != nil {
@@ -151,7 +130,7 @@ func isSameSlice(a []string, b []string) bool {
 	return true
 }
 
-func (n *node) Lookup(path string, fixTailingSlash bool) (ctx interface{}, pairs Pairs, ok bool) {
+func (n *node) Lookup(path string, fixTailingSlash bool) (ctx interface{}, pairs []*Pair, ok bool) {
 	var leaf *leaf
 	if leaf, pairs = n.lookUp(path, fixTailingSlash); leaf != nil {
 		return leaf.context, pairs, true
@@ -423,7 +402,7 @@ type backStateStack struct {
 	wildDone bool
 }
 
-func (n *node) lookUp(path string, fixTailingSlash bool) (*leaf, Pairs) { //to speed up , no others func call
+func (n *node) lookUp(path string, fixTailingSlash bool) (*leaf, []*Pair) { //to speed up , no others func call
 	var backStack, pevStack *backStateStack
 	var leaf *leaf
 	var next *node
@@ -520,7 +499,7 @@ walk:
 		backStack = backStack.prev
 		goto walk
 	}
-	return nil, Pairs{}
+	return nil, []*Pair{}
 
 beforeNext:
 	if next != nil {
@@ -548,14 +527,15 @@ beforeNext:
 		goto walk
 	}
 found:
-	params := make(Pairs, len(leaf.params), len(leaf.params))
-	paramsIdx := len(params) - 1
+	paramList := make([]*Pair, len(leaf.params), len(leaf.params))
+	paramsIdx := len(paramList) - 1
 	for paramsIdx >= 0 && backStack != nil {
 		if backStack.paramLen > 0 {
-			params[paramsIdx] = &Pair{leaf.params[paramsIdx], path[backStack.paramPo : backStack.paramPo+backStack.paramLen]}
+			paramList[paramsIdx] = &Pair{leaf.params[paramsIdx], path[backStack.paramPo : backStack.paramPo+backStack.paramLen]}
 			paramsIdx--
 		}
 		backStack = backStack.prev
 	}
-	return leaf, params
+
+	return leaf, paramList
 }

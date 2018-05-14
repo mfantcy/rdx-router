@@ -1,4 +1,4 @@
-package rdx_router
+package mux
 
 import (
 	"net/http"
@@ -7,6 +7,8 @@ import (
 	"github.com/mfantcy/rdx-router/tree"
 	"strings"
 )
+
+type PanicHandleFunc func(recovered interface{}) http.HandlerFunc
 
 type Router struct {
 	FixTrailingSlash bool
@@ -21,31 +23,36 @@ type Router struct {
 
 	PanicFunc PanicHandleFunc
 
-	tree tree.Tree
+	tree tree.TrieInterface
 
 	middlewareChain []MiddlewareFunc
+}
+
+func (r *Router) Use(middleware ...MiddlewareFunc) {
+	r.middlewareChain = middleware
 }
 
 func (r *Router) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	if r.PanicFunc != nil {
 		defer r.recover(w, req)
 	}
-	var handleFunc HandleFunc
-	var ps params
+	var handleFunc http.HandlerFunc
 	if rt, p, ok := r.tree.Lookup(req.URL.Path, r.FixTrailingSlash); ok && rt != nil { //resource found
 		route := rt.(Route)
 		handleFunc = route.MethodHandleFunc(req.Method)
-		ps = toParams(p)
+		if len(p) > 0 {
+			req = toWithRequestParams(req, newParams(p))
+		}
 		if handleFunc == nil {
 			if req.Method == "OPTIONS" && r.HandleOPTIONS {
-				handleFunc = func(w http.ResponseWriter, req *http.Request, _ ParamsHolder) {
+				handleFunc = func(w http.ResponseWriter, req *http.Request) {
 					allowedMethods := route.Methods()
 					allowedMethods = uniqueAppend(allowedMethods, "OPTIONS")
 					w.Header().Set("Allow", strings.Join(allowedMethods, " "))
 					w.WriteHeader(200)
 				}
 			} else if r.MethodNotAllowedHandler != nil || r.HandleMethodNotAllowed { //method not allowed
-				handleFunc = func(w http.ResponseWriter, req *http.Request, _ ParamsHolder) {
+				handleFunc = func(w http.ResponseWriter, req *http.Request) {
 					allowedMethods := route.Methods()
 					if r.HandleOPTIONS {
 						allowedMethods = uniqueAppend(allowedMethods, "OPTIONS")
@@ -63,7 +70,7 @@ func (r *Router) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 
 	//not found
 	if handleFunc == nil {
-		handleFunc = func(w http.ResponseWriter, req *http.Request, _ ParamsHolder) {
+		handleFunc = func(w http.ResponseWriter, req *http.Request) {
 			if r.NotFoundHandler != nil {
 				r.NotFoundHandler.ServeHTTP(w, req)
 			} else {
@@ -74,9 +81,9 @@ func (r *Router) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	}
 	//global middleware
 	for _, middlewareFunc := range r.middlewareChain {
-		handleFunc = middlewareFunc(handleFunc)
+		handleFunc = middlewareFunc(handleFunc).ServeHTTP
 	}
-	handleFunc(w, req, ps)
+	handleFunc(w, req)
 	return
 }
 
@@ -89,38 +96,38 @@ func NewRouter() *Router {
 	}
 }
 
-func (r *Router) Handle(path string, handleFunc HandleFunc, httpMethod ...string) MiddlewareRegistrar {
-	methodCxt := &methodContext{handleFunc, handleFunc}
+func (r *Router) Handle(path string, handler http.Handler, httpMethod ...string) MiddlewareRegistrar {
+	methodCxt := &methodContext{handler, handler.ServeHTTP}
 	r.handle(path, methodCxt, httpMethod...)
 	return methodCxt
 }
 
-func (r *Router) GET(path string, handleFunc HandleFunc) MiddlewareRegistrar {
-	return r.Handle(path, handleFunc, "GET")
+func (r *Router) GET(path string, handler http.Handler) MiddlewareRegistrar {
+	return r.Handle(path, handler, "GET")
 }
 
-func (r *Router) POST(path string, handleFunc HandleFunc) MiddlewareRegistrar {
-	return r.Handle(path, handleFunc, "POST")
+func (r *Router) POST(path string, handler http.Handler) MiddlewareRegistrar {
+	return r.Handle(path, handler, "POST")
 }
 
-func (r *Router) PUT(path string, handleFunc HandleFunc) MiddlewareRegistrar {
-	return r.Handle(path, handleFunc, "PUT")
+func (r *Router) PUT(path string, handler http.Handler) MiddlewareRegistrar {
+	return r.Handle(path, handler, "PUT")
 }
 
-func (r *Router) DELETE(path string, handleFunc HandleFunc) MiddlewareRegistrar {
-	return r.Handle(path, handleFunc, "DELETE")
+func (r *Router) DELETE(path string, handler http.Handler) MiddlewareRegistrar {
+	return r.Handle(path, handler, "DELETE")
 }
 
-func (r *Router) OPTIONS(path string, handleFunc HandleFunc) MiddlewareRegistrar {
-	return r.Handle(path, handleFunc, "OPTIONS")
+func (r *Router) OPTIONS(path string, handler http.Handler) MiddlewareRegistrar {
+	return r.Handle(path, handler, "OPTIONS")
 }
 
-func (r *Router) HEAD(path string, handleFunc HandleFunc) MiddlewareRegistrar {
-	return r.Handle(path, handleFunc, "HEAD")
+func (r *Router) HEAD(path string, handler http.Handler) MiddlewareRegistrar {
+	return r.Handle(path, handler, "HEAD")
 }
 
-func (r *Router) PATCH(path string, handleFunc HandleFunc) MiddlewareRegistrar {
-	return r.Handle(path, handleFunc, "PATCH")
+func (r *Router) PATCH(path string, handler http.Handler) MiddlewareRegistrar {
+	return r.Handle(path, handler, "PATCH")
 }
 
 func (r *Router) Group(path string, groupFunc func(routeRegistrar RouteRegistrar)) MiddlewareRegistrar {
@@ -165,6 +172,6 @@ func uniqueAppend(a []string, s string) []string {
 
 func (r *Router) recover(w http.ResponseWriter, req *http.Request) {
 	if rev := recover(); rev != nil {
-		r.PanicFunc(w, req, rev)
+		r.PanicFunc(rev)(w, req)
 	}
 }

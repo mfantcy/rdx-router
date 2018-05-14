@@ -1,11 +1,14 @@
-package rdx_router
+package mux
+
+import "net/http"
 
 type group struct {
-	parent        *group
-	subGroups     []*group
-	path          string
-	methodCxtRefs []*methodContext
-	routes        map[string]map[string]*methodContext
+	parent          *group
+	subGroups       []*group
+	path            string
+	methodCxtRefs   []*methodContext
+	routes          map[string]map[string]*methodContext
+	middlewareChain []MiddlewareFunc
 }
 
 func newGroup(path string) *group {
@@ -35,16 +38,11 @@ func (g *group) getRoutes() (routes map[string]map[string]*methodContext) {
 }
 
 func (g *group) Use(middleware ...MiddlewareFunc) {
-	for _, methodCtx := range g.methodCxtRefs {
-		methodCtx.Use(middleware...)
-	}
-	for _, subGroup := range g.subGroups {
-		subGroup.Use(middleware...)
-	}
+	g.middlewareChain = middleware
 }
 
-func (g *group) Handle(path string, handleFunc HandleFunc, httpMethod ...string) MiddlewareRegistrar {
-	methodCtx := &methodContext{handleFunc, handleFunc}
+func (g *group) Handle(path string, handleFunc http.Handler, httpMethod ...string) MiddlewareRegistrar {
+	methodCtx := &methodContext{handleFunc, handleFunc.ServeHTTP}
 	mctx, ok := g.routes[path]
 	if !ok {
 		mctx = make(map[string]*methodContext)
@@ -57,31 +55,31 @@ func (g *group) Handle(path string, handleFunc HandleFunc, httpMethod ...string)
 	return methodCtx
 }
 
-func (g *group) GET(path string, handleFunc HandleFunc) MiddlewareRegistrar {
+func (g *group) GET(path string, handleFunc http.Handler) MiddlewareRegistrar {
 	return g.Handle(path, handleFunc, "GET")
 }
 
-func (g *group) POST(path string, handleFunc HandleFunc) MiddlewareRegistrar {
+func (g *group) POST(path string, handleFunc http.Handler) MiddlewareRegistrar {
 	return g.Handle(path, handleFunc, "POST")
 }
 
-func (g *group) PUT(path string, handleFunc HandleFunc) MiddlewareRegistrar {
+func (g *group) PUT(path string, handleFunc http.Handler) MiddlewareRegistrar {
 	return g.Handle(path, handleFunc, "PUT")
 }
 
-func (g *group) DELETE(path string, handleFunc HandleFunc) MiddlewareRegistrar {
+func (g *group) DELETE(path string, handleFunc http.Handler) MiddlewareRegistrar {
 	return g.Handle(path, handleFunc, "DELETE")
 }
 
-func (g *group) OPTIONS(path string, handleFunc HandleFunc) MiddlewareRegistrar {
+func (g *group) OPTIONS(path string, handleFunc http.Handler) MiddlewareRegistrar {
 	return g.Handle(path, handleFunc, "OPTIONS")
 }
 
-func (g *group) HEAD(path string, handleFunc HandleFunc) MiddlewareRegistrar {
+func (g *group) HEAD(path string, handleFunc http.Handler) MiddlewareRegistrar {
 	return g.Handle(path, handleFunc, "HEAD")
 }
 
-func (g *group) PATCH(path string, handleFunc HandleFunc) MiddlewareRegistrar {
+func (g *group) PATCH(path string, handleFunc http.Handler) MiddlewareRegistrar {
 	return g.Handle(path, handleFunc, "PATCH")
 }
 
